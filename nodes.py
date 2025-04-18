@@ -1,6 +1,8 @@
 from transformers import pipeline
 from torchvision import transforms
 import torch
+import os
+import folder_paths
 
 class YetAnotherSafetyChecker:
     @classmethod
@@ -15,6 +17,7 @@ class YetAnotherSafetyChecker:
                     "step": 0.01
                 }),
                 "cuda": ("BOOLEAN", {"default": False}),
+                "model_dir": ("STRING", {"default": "nsfw"}),
             },
         }
 
@@ -23,12 +26,24 @@ class YetAnotherSafetyChecker:
 
     CATEGORY = "image/processing"
 
-    def process_images(self, image, threshold, cuda):
+    def process_images(self, image, threshold, cuda, model_dir):
         if cuda:
             device = "cuda"
         else:
             device = "cpu"
-        predict = pipeline("image-classification", model="AdamCodd/vit-base-nsfw-detector", device=device) #init pipeline
+            
+        # 构建模型路径
+        MODELS_DIR = os.path.join(folder_paths.models_dir, model_dir)
+        if not os.path.exists(MODELS_DIR):
+            raise Exception(f"Model directory {MODELS_DIR} not found.")
+            
+        # 检查模型目录是否包含必要的文件
+        required_files = ["config.json"]
+        for file in required_files:
+            if not os.path.exists(os.path.join(MODELS_DIR, file)):
+                raise Exception(f"Required model file {file} not found in {MODELS_DIR}.")
+                
+        predict = pipeline("image-classification", model=MODELS_DIR, device=device)
         result = (predict(transforms.ToPILImage()(image[0].cpu().permute(2, 0, 1)))) #Convert to expected format
         score = next(item['score'] for item in result if item['label'] == 'nsfw')
         output = image
