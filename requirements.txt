@@ -1,1 +1,1 @@
-tf-keras
+tf-keras==2.20.1
