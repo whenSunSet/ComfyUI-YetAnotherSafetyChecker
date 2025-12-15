@@ -1,1 +1,1 @@
-tf-keras==2.20.1
+transformers>=4.37.2
